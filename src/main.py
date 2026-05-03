@@ -13,7 +13,16 @@ DATA_PATH = ROOT / "data" / "Global_Dataset.csv"
 OUTPUT_DIR = ROOT / "outputs"
 
 REFERENCE_YEAR = 2014
+MAX_VISUALIZATION_YEAR = 2022
 HIGHLIGHT_COUNTRIES = ["USA", "CHN", "FRA", "LUX", "SOM", "NER"]
+COUNTRY_COLORS = {
+    "USA": "#1f77b4",
+    "CHN": "#d62728",
+    "FRA": "#2ca02c",
+    "LUX": "#9467bd",
+    "SOM": "#ff7f0e",
+    "NER": "#17becf",
+}
 
 RENAME_COLUMNS = {
     "polity2": "polity_score",
@@ -171,6 +180,28 @@ def compute_scores(z: pd.DataFrame, eigenvectors: np.ndarray) -> pd.DataFrame:
     return scores
 
 
+def compute_historical_scores(
+    df: pd.DataFrame,
+    x: pd.DataFrame,
+    eigenvectors: np.ndarray,
+) -> pd.DataFrame:
+    aligned = df[["Country Code", "Year", *x.columns]].copy()
+    for column in COUNT_VARIABLES:
+        if column in aligned.columns:
+            aligned[column] = aligned[column].fillna(0)
+
+    sigma = x.std(axis=0)
+    sigma[sigma == 0] = 1
+    z_history = (aligned[x.columns] - x.mean(axis=0)) / sigma
+    z_history = z_history.fillna(0)
+
+    scores = pd.DataFrame(z_history.values @ eigenvectors[:, :3], columns=["PC1", "PC2", "PC3"])
+    scores["PC1"] *= -1
+    scores["country"] = aligned["Country Code"].values
+    scores["year"] = aligned["Year"].astype(int).values
+    return scores.set_index(["country", "year"]).sort_index()
+
+
 def plot_3d_scores(scores: pd.DataFrame, output_path: Path) -> None:
     fig = plt.figure(figsize=(11, 8))
     ax = fig.add_subplot(111, projection="3d")
@@ -195,6 +226,76 @@ def plot_3d_scores(scores: pd.DataFrame, output_path: Path) -> None:
     plt.close(fig)
 
 
+def plot_3d_trajectories(history: pd.DataFrame, output_path: Path, year: int | None = None) -> None:
+    years = history.index.get_level_values("year")
+    selected_year = int(year or min(years.max(), MAX_VISUALIZATION_YEAR))
+
+    fig = plt.figure(figsize=(12, 8.5))
+    ax = fig.add_subplot(111, projection="3d")
+
+    year_slice = history.xs(selected_year, level="year")
+    ax.scatter(
+        year_slice["PC1"],
+        year_slice["PC2"],
+        year_slice["PC3"],
+        color="#9aa0a6",
+        alpha=0.22,
+        s=18,
+        depthshade=False,
+    )
+
+    for country in HIGHLIGHT_COUNTRIES:
+        if country not in history.index.get_level_values("country"):
+            continue
+
+        trajectory = history.xs(country, level="country").sort_index()
+        trajectory = trajectory.loc[trajectory.index <= selected_year]
+        if trajectory.empty:
+            continue
+
+        color = COUNTRY_COLORS.get(country, "#333333")
+        ax.plot(
+            trajectory["PC1"],
+            trajectory["PC2"],
+            trajectory["PC3"],
+            color=color,
+            linewidth=2.4,
+            alpha=0.95,
+            label=country,
+        )
+        current = trajectory.iloc[-1]
+        ax.scatter(
+            current["PC1"],
+            current["PC2"],
+            current["PC3"],
+            color=color,
+            s=95,
+            edgecolors="black",
+            linewidths=0.7,
+            depthshade=False,
+        )
+        ax.text(
+            current["PC1"],
+            current["PC2"],
+            current["PC3"],
+            f" {country}",
+            color=color,
+            fontsize=10,
+            weight="bold",
+        )
+
+    ax.set_title(f"3D PCA Democratization Trajectories (1960-{selected_year})", pad=18)
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_zlabel("PC3")
+    ax.view_init(elev=17, azim=38)
+    ax.legend(loc="upper left", bbox_to_anchor=(0.02, 0.98), frameon=True)
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=200)
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the democratization PCA visualization.")
     parser.add_argument("--data", type=Path, default=DATA_PATH, help="Path to the input CSV.")
@@ -207,15 +308,21 @@ def main() -> None:
     scores = compute_scores(z, eigenvectors)
 
     explained_variance = eigenvalues / eigenvalues.sum()
-    output_path = args.output_dir / "pca_3d_2014.png"
-    plot_3d_scores(scores, output_path)
+    static_output_path = args.output_dir / "pca_3d_2014.png"
+    trajectory_output_path = args.output_dir / "pca_3d_trajectories.png"
+    history = compute_historical_scores(df, x, eigenvectors)
+    history = history[history.index.get_level_values("year") <= MAX_VISUALIZATION_YEAR]
+
+    plot_3d_scores(scores, static_output_path)
+    plot_3d_trajectories(history, trajectory_output_path)
 
     print(f"Cleaned reference matrix: {x.shape[0]} countries x {x.shape[1]} variables")
     print(
         "Explained variance, first three PCs: "
         + ", ".join(f"{value:.2%}" for value in explained_variance[:3])
     )
-    print(f"Wrote {output_path}")
+    print(f"Wrote {static_output_path}")
+    print(f"Wrote {trajectory_output_path}")
 
 
 if __name__ == "__main__":
