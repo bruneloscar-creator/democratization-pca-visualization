@@ -13,7 +13,8 @@ DATA_PATH = ROOT / "data" / "Global_Dataset.csv"
 OUTPUT_DIR = ROOT / "outputs"
 
 REFERENCE_YEAR = 2014
-MAX_VISUALIZATION_YEAR = 2022
+MAX_VISUALIZATION_YEAR = 2021
+MIN_TRAJECTORY_COVERAGE = 0.50
 HIGHLIGHT_COUNTRIES = ["USA", "CHN", "FRA", "LUX", "SOM", "NER"]
 COUNTRY_COLORS = {
     "USA": "#1f77b4",
@@ -126,6 +127,10 @@ COUNT_VARIABLES = ["journalists_killed_n", "journalists_imprisoned_n"]
 
 def load_dataset(path: Path = DATA_PATH) -> pd.DataFrame:
     df = pd.read_csv(path, low_memory=False)
+    if "in_GW_system" in df.columns:
+        valid_country_codes = df.loc[df["in_GW_system"].eq(True), "Country Code"].dropna().unique()
+        df = df[df["Country Code"].isin(valid_country_codes)].copy()
+
     df = df.rename(columns=RENAME_COLUMNS)
     columns = ["Country Code", "Year", *PCA_VARIABLES]
     df = df.loc[:, columns].copy()
@@ -190,6 +195,7 @@ def compute_historical_scores(
         if column in aligned.columns:
             aligned[column] = aligned[column].fillna(0)
 
+    coverage = aligned[x.columns].notna().mean(axis=1)
     sigma = x.std(axis=0)
     sigma[sigma == 0] = 1
     z_history = (aligned[x.columns] - x.mean(axis=0)) / sigma
@@ -199,6 +205,7 @@ def compute_historical_scores(
     scores["PC1"] *= -1
     scores["country"] = aligned["Country Code"].values
     scores["year"] = aligned["Year"].astype(int).values
+    scores["coverage"] = coverage.values
     return scores.set_index(["country", "year"]).sort_index()
 
 
@@ -229,11 +236,12 @@ def plot_3d_scores(scores: pd.DataFrame, output_path: Path) -> None:
 def plot_3d_trajectories(history: pd.DataFrame, output_path: Path, year: int | None = None) -> None:
     years = history.index.get_level_values("year")
     selected_year = int(year or min(years.max(), MAX_VISUALIZATION_YEAR))
+    reliable_history = history[history["coverage"] >= MIN_TRAJECTORY_COVERAGE]
 
     fig = plt.figure(figsize=(12, 8.5))
     ax = fig.add_subplot(111, projection="3d")
 
-    year_slice = history.xs(selected_year, level="year")
+    year_slice = reliable_history.xs(selected_year, level="year")
     ax.scatter(
         year_slice["PC1"],
         year_slice["PC2"],
@@ -245,10 +253,10 @@ def plot_3d_trajectories(history: pd.DataFrame, output_path: Path, year: int | N
     )
 
     for country in HIGHLIGHT_COUNTRIES:
-        if country not in history.index.get_level_values("country"):
+        if country not in reliable_history.index.get_level_values("country"):
             continue
 
-        trajectory = history.xs(country, level="country").sort_index()
+        trajectory = reliable_history.xs(country, level="country").sort_index()
         trajectory = trajectory.loc[trajectory.index <= selected_year]
         if trajectory.empty:
             continue
@@ -284,7 +292,7 @@ def plot_3d_trajectories(history: pd.DataFrame, output_path: Path, year: int | N
             weight="bold",
         )
 
-    ax.set_title(f"3D PCA Democratization Trajectories (1960-{selected_year})", pad=18)
+    ax.set_title(f"3D PCA Democratization Trajectories (through {selected_year})", pad=18)
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
     ax.set_zlabel("PC3")
