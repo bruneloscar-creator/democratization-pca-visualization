@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this project, please cite it using the metadata below."
+title: "Demoscope: Global democracy through principal component analysis"
+type: software
+authors:
+  - family-names: Brunel
+    given-names: Oscar
+    email: oscar.brunel@studbocconi.it
+repository-code: "https://github.com/bruneloscar-creator/democratization-pca-visualization"
+url: "https://demoscope-pca.aware-harp-9471.chatgpt.site"
+version: 1.0.0
+date-released: 2026-07-14

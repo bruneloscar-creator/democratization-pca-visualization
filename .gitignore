@@ -1,24 +1,14 @@
-# Python
-__pycache__/
-*.py[cod]
-*.so
-.Python
+.DS_Store
 .venv/
 venv/
-env/
-
-# Jupyter
+__pycache__/
+*.py[cod]
 .ipynb_checkpoints/
-*.nbconvert.ipynb
 
-# Local tooling
-.DS_Store
-.env
-.env.*
-.cache/
-*.log
-
-# Large/generated scratch files
-outputs/*.html
-outputs/*.mp4
-outputs/*.gif
+web/node_modules/
+web/dist/
+web/.next/
+web/.wrangler/
+web/.vite/
+web/.playwright-cli/
+web/*.tsbuildinfo

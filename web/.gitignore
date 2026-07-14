@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.next/
+.wrangler/
+.playwright-cli/
+.DS_Store
+*.local
+.vite/
+*.tsbuildinfo

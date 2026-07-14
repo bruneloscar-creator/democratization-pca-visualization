@@ -1,0 +1,487 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --color-void: #050711;
+  --color-ink: #0a0f1d;
+  --color-panel: rgba(17, 25, 44, 0.54);
+  --color-glass: rgba(255, 255, 255, 0.075);
+  --color-glass-border: rgba(255, 255, 255, 0.16);
+  --color-cyan: #8cf7e8;
+  --color-cyan-dim: #5ce7d7;
+  --color-mist: #a7b2c8;
+  --color-snow: #f4f7ff;
+  --color-warn: #fbbf24;
+  --color-danger: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: #050711;
+  color: var(--color-snow);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+  /* Avoid iOS tap highlight flash on glass chrome */
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  isolation: isolate;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 620;
+  letter-spacing: -0.045em;
+}
+
+/*
+  Stacking scale (root siblings):
+  map/globe 0 · ambient/noise 1 · chrome overlays 20 · lang 30 ·
+  sheet backdrop 30 · sheet 40 · dock 50
+
+  WebGL must live in .map-stage (isolated + contain) so atmosphere/glow
+  never composites above glass panels that use backdrop-filter.
+*/
+
+.map-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+  contain: paint;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Keep react-globe.gl / Three.js canvas inside the map stacking context */
+.map-stage canvas {
+  position: absolute !important;
+  inset: 0;
+  z-index: 0 !important;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.ui-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  isolation: isolate;
+  pointer-events: none;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Timeline sits fully above the fixed dock with a visible gap */
+.timeline-dock-clearance {
+  bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 640px) {
+  .timeline-dock-clearance {
+    bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Desktop: sit lower (closer to dock) so the globe dominates */
+@media (min-width: 768px) {
+  .timeline-dock-clearance {
+    bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .timeline-panel input[type='range'] {
+    height: 1.35rem;
+  }
+
+  .timeline-panel input[type='range']::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+    margin-top: -6.5px;
+  }
+
+  .timeline-panel input[type='range']::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.055) 38%,
+    rgba(108, 132, 190, 0.055) 100%
+  );
+  backdrop-filter: blur(30px) saturate(1.55);
+  -webkit-backdrop-filter: blur(30px) saturate(1.55);
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  box-shadow:
+    0 14px 50px rgba(1, 4, 14, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.19),
+    inset 0 -1px 0 rgba(77, 103, 167, 0.12);
+  /* Promote layer for stable backdrop-filter without fighting Tailwind position utilities */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.glass-strong {
+  background: linear-gradient(
+    145deg,
+    rgba(25, 35, 59, 0.88) 0%,
+    rgba(10, 15, 29, 0.92) 55%,
+    rgba(10, 12, 24, 0.96) 100%
+  );
+  backdrop-filter: blur(42px) saturate(1.55);
+  -webkit-backdrop-filter: blur(42px) saturate(1.55);
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  box-shadow:
+    0 30px 100px rgba(0, 2, 12, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(111, 129, 195, 0.1);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: rgba(16, 24, 38, 0.88);
+  }
+  .glass-strong {
+    background: rgba(10, 16, 28, 0.94);
+  }
+}
+
+/* Slightly lighter blur on narrow phones — smoother scroll, still frosted */
+@media (max-width: 639px) {
+  .glass {
+    backdrop-filter: blur(20px) saturate(1.25);
+    -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  }
+  .glass-strong {
+    backdrop-filter: blur(28px) saturate(1.3);
+    -webkit-backdrop-filter: blur(28px) saturate(1.3);
+  }
+}
+
+.country-hover-tooltip {
+  /* Slightly denser frost so the label reads over the map/globe */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  box-shadow:
+    0 10px 36px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.022;
+  /* Decorative only — never intercept hits or sit above chrome */
+  isolation: isolate;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.space-bg {
+  background:
+    radial-gradient(ellipse 70% 55% at 14% 8%, rgba(63, 220, 208, 0.15), transparent 58%),
+    radial-gradient(ellipse 65% 58% at 90% 14%, rgba(111, 134, 255, 0.15), transparent 55%),
+    radial-gradient(ellipse 75% 55% at 52% 108%, rgba(116, 84, 210, 0.13), transparent 62%),
+    linear-gradient(150deg, #050711 0%, #081020 48%, #070914 100%);
+}
+
+.ambient-orb {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(1px);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+}
+
+.ambient-orb-a {
+  left: -12rem;
+  top: 18%;
+  width: 29rem;
+  height: 29rem;
+  background: radial-gradient(circle, rgba(82, 246, 220, 0.12), transparent 68%);
+}
+
+.ambient-orb-b {
+  right: -11rem;
+  top: -9rem;
+  width: 34rem;
+  height: 34rem;
+  background: radial-gradient(circle, rgba(120, 143, 255, 0.16), transparent 68%);
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-mark {
+  position: relative;
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.48), transparent 26%),
+    linear-gradient(145deg, rgba(129, 247, 230, 0.36), rgba(106, 126, 238, 0.2));
+  box-shadow:
+    0 10px 35px rgba(55, 224, 210, 0.17),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.brand-mark::after {
+  content: '';
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 1.5px solid rgba(235, 255, 253, 0.9);
+  border-radius: 50%;
+  box-shadow: inset -3px -2px 0 rgba(92, 231, 215, 0.28);
+}
+
+.eyebrow {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: rgba(181, 255, 247, 0.72);
+}
+
+.surface-card {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.metric-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::after {
+  content: '';
+  position: absolute;
+  right: -2rem;
+  top: -2rem;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(106, 233, 220, 0.12), transparent 70%);
+}
+
+.page-aurora {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(85, 225, 213, 0.08), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(122, 139, 255, 0.08), transparent 30%);
+}
+
+/* Scrollable regions that sit under the fixed dock */
+.dock-safe-bottom {
+  padding-bottom: calc(7.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+.safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+}
+
+.safe-x {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+
+.panel-scroll {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Minimum Apple HIG-ish tap target */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-soft {
+    animation: none;
+    opacity: 0.85;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Range inputs — tall hit area, visible thumb on touch */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 2rem;
+  touch-action: none;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(140, 247, 232, 0.48), rgba(255, 255, 255, 0.13));
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -8.5px;
+  border-radius: 50%;
+  background: #b9fff5;
+  border: 2px solid rgba(7, 11, 18, 0.85);
+  box-shadow: 0 0 0 4px rgba(140, 247, 232, 0.16), 0 0 22px rgba(92, 231, 215, 0.45);
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-track {
+  height: 5px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(140, 247, 232, 0.48), rgba(255, 255, 255, 0.13));
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #b9fff5;
+  border: 2px solid rgba(7, 11, 18, 0.85);
+  box-shadow: 0 0 0 4px rgba(140, 247, 232, 0.16), 0 0 22px rgba(92, 231, 215, 0.45);
+  cursor: pointer;
+}
+
+/* Compact language flag control (works with LanguageToggle when present) */
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  padding: 0.2rem;
+  min-height: 40px;
+}
+
+.lang-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 36px;
+  border-radius: 999px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.intro-glass {
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(27, 38, 64, 0.64) 40%,
+    rgba(8, 13, 27, 0.84) 100%
+  );
+  box-shadow:
+    0 34px 110px rgba(0, 2, 15, 0.6),
+    0 0 70px rgba(84, 210, 207, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(34px) saturate(1.6);
+  -webkit-backdrop-filter: blur(34px) saturate(1.6);
+}
+
+.intro-progress {
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.intro-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8cf7e8, #91a7ff);
+  box-shadow: 0 0 14px rgba(140, 247, 232, 0.48);
+  transition: width 0.25s linear;
+}
+
+@media (max-width: 639px) {
+  .brand-mark {
+    width: 2.05rem;
+    height: 2.05rem;
+    border-radius: 0.78rem;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .intro-glass {
+    background: rgba(12, 18, 28, 0.94);
+  }
+}
