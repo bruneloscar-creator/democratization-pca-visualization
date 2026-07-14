@@ -45,7 +45,13 @@ function interpolate(template: string, params?: I18nParams): string {
 
 /** Component-only export for Vite Fast Refresh compatibility. */
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => detectLocale())
+  // Keep the server render and the first browser render identical. The saved
+  // preference is applied immediately after hydration.
+  const [locale, setLocaleState] = useState<Locale>('fr')
+
+  useEffect(() => {
+    setLocaleState(detectLocale())
+  }, [])
 
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next)

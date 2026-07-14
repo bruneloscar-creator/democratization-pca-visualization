@@ -58,10 +58,11 @@ export default function App() {
   const [activeIso, setActiveIso] = useState<string | null>(null)
   const [compare, setCompare] = useState<string[]>([])
   const [mapHover, setMapHover] = useState<CountryHoverState | null>(null)
-  const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
+  const [size, setSize] = useState({ w: 1440, h: 900 })
 
   useEffect(() => {
     const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight })
+    onResize()
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
