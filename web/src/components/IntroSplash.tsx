@@ -80,8 +80,7 @@ export function IntroSplash({ ready }: Props) {
             <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-cyan-300/10 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-indigo-400/10 blur-3xl" />
 
-            <div className="brand-mark mx-auto h-12 w-12 rounded-2xl" aria-hidden />
-            <p className="eyebrow relative mt-6">
+            <p className="eyebrow relative">
               {t('intro.eyebrow')}
             </p>
             <h1

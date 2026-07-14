@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import type { FeatureCollection } from 'geojson'
 import { motion } from 'framer-motion'
 import { loadAppData } from './lib/data'
@@ -12,12 +12,6 @@ import type {
   WorldEvolution,
 } from './types'
 import { Dock } from './components/Dock'
-import { GlobeView } from './components/GlobeView'
-import { FlatMap } from './components/FlatMap'
-import { Timeline } from './components/Timeline'
-import { CountrySheet } from './components/CountrySheet'
-import { ComparePanel } from './components/ComparePanel'
-import { AboutPage } from './components/AboutPage'
 import { CountrySearch } from './components/CountrySearch'
 import {
   CountryHoverTooltip,
@@ -27,6 +21,25 @@ import { HatchSwatch } from './components/NoDataHatch'
 import { buildPc1RankMap } from './lib/pc1Rank'
 import { LanguageToggle, useI18n } from './i18n'
 import { IntroSplash } from './components/IntroSplash'
+
+const GlobeView = lazy(() =>
+  import('./components/GlobeView').then((module) => ({ default: module.GlobeView })),
+)
+const FlatMap = lazy(() =>
+  import('./components/FlatMap').then((module) => ({ default: module.FlatMap })),
+)
+const Timeline = lazy(() =>
+  import('./components/Timeline').then((module) => ({ default: module.Timeline })),
+)
+const CountrySheet = lazy(() =>
+  import('./components/CountrySheet').then((module) => ({ default: module.CountrySheet })),
+)
+const ComparePanel = lazy(() =>
+  import('./components/ComparePanel').then((module) => ({ default: module.ComparePanel })),
+)
+const AboutPage = lazy(() =>
+  import('./components/AboutPage').then((module) => ({ default: module.AboutPage })),
+)
 
 export default function App() {
   const { t } = useI18n()
@@ -180,9 +193,8 @@ export default function App() {
           {langToggle}
         </div>
         <div className="text-center">
-          <div className="brand-mark mx-auto mb-5" aria-hidden />
           <p className="font-display text-4xl text-white">Demoscope</p>
-          <p className="mt-3 animate-pulse-soft text-xs font-medium uppercase tracking-[0.16em] text-cyan-200/70">
+          <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
             {t('loading')}
           </p>
         </div>
@@ -221,33 +233,35 @@ export default function App() {
         <>
           {/* Map/globe — lowest layer; isolated so WebGL glow cannot cover chrome */}
           <div className="map-stage">
-            {mapMode === 'globe' ? (
-              <GlobeView
-                geo={geo}
-                scoresByYear={scoresByYear}
-                year={year}
-                selected={[...(activeIso ? [activeIso] : []), ...compare]}
-                knownIsos={knownIsos}
-                scaleOpts={scaleOpts}
-                onSelect={handleSelect}
-                onHover={handleMapHover}
-                width={size.w}
-                height={size.h}
-              />
-            ) : (
-              <FlatMap
-                geo={geo}
-                scoresByYear={scoresByYear}
-                year={year}
-                selected={[...(activeIso ? [activeIso] : []), ...compare]}
-                knownIsos={knownIsos}
-                scaleOpts={scaleOpts}
-                onSelect={handleSelect}
-                onHover={handleMapHover}
-                width={size.w}
-                height={size.h}
-              />
-            )}
+            <Suspense fallback={<div className="map-placeholder" aria-hidden />}>
+              {mapMode === 'globe' ? (
+                <GlobeView
+                  geo={geo}
+                  scoresByYear={scoresByYear}
+                  year={year}
+                  selected={[...(activeIso ? [activeIso] : []), ...compare]}
+                  knownIsos={knownIsos}
+                  scaleOpts={scaleOpts}
+                  onSelect={handleSelect}
+                  onHover={handleMapHover}
+                  width={size.w}
+                  height={size.h}
+                />
+              ) : (
+                <FlatMap
+                  geo={geo}
+                  scoresByYear={scoresByYear}
+                  year={year}
+                  selected={[...(activeIso ? [activeIso] : []), ...compare]}
+                  knownIsos={knownIsos}
+                  scaleOpts={scaleOpts}
+                  onSelect={handleSelect}
+                  onHover={handleMapHover}
+                  width={size.w}
+                  height={size.h}
+                />
+              )}
+            </Suspense>
           </div>
 
           {/* Chrome overlays — sibling above map (not co-parented with WebGL) */}
@@ -266,22 +280,19 @@ export default function App() {
               className="pointer-events-none absolute left-0 right-0 top-0 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-8 sm:pt-6"
             >
               <div className="flex flex-col gap-3 sm:gap-5">
-                <div className="brand-lockup min-w-0 pr-[5.25rem] sm:pr-[5.75rem]">
-                  <div className="brand-mark shrink-0" aria-hidden />
-                  <div className="min-w-0">
-                    <p className="eyebrow hidden sm:block">
-                      {t('brandEyebrow', {
-                        from: meta.analysisWindow[0],
-                        to: meta.analysisWindow[1],
-                      })}
-                    </p>
-                    <h1 className="font-display text-[1.7rem] leading-none text-white sm:mt-1 sm:text-[2.65rem]">
-                      Demoscope
-                    </h1>
-                    <p className="mt-1 hidden max-w-md text-[13px] leading-relaxed text-slate-400 sm:block">
-                      {t('brandTagline')}
-                    </p>
-                  </div>
+                <div className="min-w-0 pr-[5.25rem] sm:pr-[5.75rem]">
+                  <p className="eyebrow hidden sm:block">
+                    {t('brandEyebrow', {
+                      from: meta.analysisWindow[0],
+                      to: meta.analysisWindow[1],
+                    })}
+                  </p>
+                  <h1 className="font-display text-[1.7rem] leading-none text-white sm:mt-1 sm:text-[2.65rem]">
+                    Demoscope
+                  </h1>
+                  <p className="mt-1 hidden max-w-md text-[13px] leading-relaxed text-slate-400 sm:block">
+                    {t('brandTagline')}
+                  </p>
                 </div>
 
                 {/* Search + map mode + legend share one left-aligned column with explicit gap */}
@@ -361,15 +372,17 @@ export default function App() {
             </motion.header>
 
             <div className="timeline-dock-clearance pointer-events-none absolute inset-x-0 flex justify-center px-2 sm:px-4">
-              <Timeline
-                year={year}
-                minYear={timelineMinYear}
-                maxYear={timelineMaxYear}
-                playing={playing}
-                onYear={setYear}
-                onTogglePlay={() => setPlaying((p) => !p)}
-                worldEvolution={worldEvolution}
-              />
+              <Suspense fallback={null}>
+                <Timeline
+                  year={year}
+                  minYear={timelineMinYear}
+                  maxYear={timelineMaxYear}
+                  playing={playing}
+                  onYear={setYear}
+                  onTogglePlay={() => setPlaying((p) => !p)}
+                  worldEvolution={worldEvolution}
+                />
+              </Suspense>
             </div>
           </div>
         </>
@@ -377,31 +390,39 @@ export default function App() {
 
       {view === 'compare' && (
         <div className="absolute inset-0 z-10">
-          <ComparePanel
-            countries={compareCountries}
-            onRemove={(iso) => setCompare((c) => c.filter((x) => x !== iso))}
-            onOpen={(iso) => {
-              setActiveIso(iso)
-            }}
-          />
+          <Suspense fallback={null}>
+            <ComparePanel
+              countries={compareCountries}
+              onRemove={(iso) => setCompare((c) => c.filter((x) => x !== iso))}
+              onOpen={(iso) => {
+                setActiveIso(iso)
+              }}
+            />
+          </Suspense>
         </div>
       )}
 
       {view === 'about' && (
         <div className="absolute inset-0 z-10">
-          <AboutPage meta={meta} />
+          <Suspense fallback={null}>
+            <AboutPage meta={meta} />
+          </Suspense>
         </div>
       )}
 
-      <CountrySheet
-        country={activeCountry}
-        meta={meta}
-        year={year}
-        inCompare={activeIso ? compare.includes(activeIso) : false}
-        onClose={() => setActiveIso(null)}
-        onToggleCompare={toggleCompare}
-        onOpenNeighbor={(iso) => setActiveIso(iso)}
-      />
+      {activeCountry && (
+        <Suspense fallback={null}>
+          <CountrySheet
+            country={activeCountry}
+            meta={meta}
+            year={year}
+            inCompare={activeIso ? compare.includes(activeIso) : false}
+            onClose={() => setActiveIso(null)}
+            onToggleCompare={toggleCompare}
+            onOpenNeighbor={(iso) => setActiveIso(iso)}
+          />
+        </Suspense>
+      )}
 
       <Dock view={view} onChange={setView} compareCount={compare.length} />
     </div>

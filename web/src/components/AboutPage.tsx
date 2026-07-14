@@ -11,10 +11,7 @@ export function AboutPage({ meta }: Props) {
     <div className="page-aurora panel-scroll h-full overflow-y-auto overflow-x-hidden px-4 pt-[max(3.5rem,calc(env(safe-area-inset-top)+2.5rem))] dock-safe-bottom sm:px-10 sm:pt-[max(2.5rem,calc(env(safe-area-inset-top)+1.5rem))]">
       <div className="mx-auto max-w-4xl">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="brand-lockup">
-            <div className="brand-mark shrink-0" aria-hidden />
-            <p className="eyebrow">{t('about.eyebrow')}</p>
-          </div>
+          <p className="eyebrow">{t('about.eyebrow')}</p>
           <h1 className="font-display mt-5 max-w-3xl pr-16 text-4xl leading-[0.98] text-white sm:pr-0 sm:text-7xl">
             {t('about.heroTitle')}
           </h1>

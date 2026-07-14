@@ -240,37 +240,6 @@ body {
   background: radial-gradient(circle, rgba(120, 143, 255, 0.16), transparent 68%);
 }
 
-.brand-lockup {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.brand-mark {
-  position: relative;
-  display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  border-radius: 0.9rem;
-  background:
-    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.48), transparent 26%),
-    linear-gradient(145deg, rgba(129, 247, 230, 0.36), rgba(106, 126, 238, 0.2));
-  box-shadow:
-    0 10px 35px rgba(55, 224, 210, 0.17),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
-}
-
-.brand-mark::after {
-  content: '';
-  width: 0.9rem;
-  height: 0.9rem;
-  border: 1.5px solid rgba(235, 255, 253, 0.9);
-  border-radius: 50%;
-  box-shadow: inset -3px -2px 0 rgba(92, 231, 215, 0.28);
-}
-
 .eyebrow {
   font-size: 0.625rem;
   font-weight: 650;
@@ -305,6 +274,13 @@ body {
   background:
     radial-gradient(circle at 15% 20%, rgba(85, 225, 213, 0.08), transparent 28%),
     radial-gradient(circle at 88% 12%, rgba(122, 139, 255, 0.08), transparent 30%);
+}
+
+.map-placeholder {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 58% 50%, rgba(65, 102, 132, 0.2) 0 20%, rgba(80, 214, 200, 0.07) 30%, transparent 43%);
 }
 
 /* Scrollable regions that sit under the fixed dock */
@@ -470,14 +446,6 @@ input[type="range"]::-moz-range-thumb {
   background: linear-gradient(90deg, #8cf7e8, #91a7ff);
   box-shadow: 0 0 14px rgba(140, 247, 232, 0.48);
   transition: width 0.25s linear;
-}
-
-@media (max-width: 639px) {
-  .brand-mark {
-    width: 2.05rem;
-    height: 2.05rem;
-    border-radius: 0.78rem;
-  }
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
